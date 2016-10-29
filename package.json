@@ -1,0 +1,12 @@
+{
+  "name": "node-web-scrape",
+  "version": "0.0.1",
+  "description": "ESPN web scraper",
+  "main": "server.js",
+  "author": "Logan",
+  "dependencies": {
+    "cheerio": "latest",
+    "express": "latest",
+    "request": "latest"
+  }
+}
