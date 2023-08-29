@@ -10,6 +10,7 @@ var app = express();
 */
 
 app.get('/scrape', function (req, res) {
+    console.log('Function run ...');
 
     // https://raw.githubusercontent.com/dallinski/sports-roster-api/master/roster_scraper.py
     ESPN_ROOT = 'http://espn.go.com'
@@ -44,7 +45,8 @@ app.get('/scrape', function (req, res) {
             'roster_links_selector': '.medium-logos span a[href^="/ncf/teams/roster?teamId="]',
             'team_names_selector': '.medium-logos h5 a[href^="http://espn.go.com/college-football/team/_/id/"]',
             'id_capture_regex': '/ncf/teams/roster\?teamId=(.*)',
-            'json_file': 'ncaa_football.json'
+            'json_file': 'ncaa_football.json',
+            'schedule_links_selector': ".TeamLinks__Links .TeamLinks__Link a[href^='/college-football/team/schedule/']",
         },
         'NCAA_BASKETBALL': {
             'base_url': 'http://espn.go.com/mens-college-basketball/teams',
@@ -60,6 +62,11 @@ app.get('/scrape', function (req, res) {
     var getRosterFlag = (req.query.roster === 'true' );
     var getScheduleFlag = (req.query.schedule === 'true' );
 
+    console.log('Choice ...' + choice);
+    console.log('Logo ...' + getLogosFlag);
+    console.log('Roaster ...' + getRosterFlag);
+    console.log('Schedule ...' + getScheduleFlag);
+
     var choiceTools = SPORTS[choice];
     var baseUrl = choiceTools.base_url;
     var all_rosters = {};
@@ -67,12 +74,20 @@ app.get('/scrape', function (req, res) {
     var schedule_counter = 0;
     var counter = 0;
 
+    console.log('baseUrl ...' + baseUrl);
+
     request(baseUrl, function (error, response, html) {
+        console.log('fetched ...');
         if (!error) {
+            console.log('no error ...');
+            console.log(html.length);
             var $ = cheerio.load(html);
             
             var rosterLinks = $(choiceTools['roster_links_selector']);
-            var teamNames = $('a.bi');
+            console.log('selecting elements ...');
+            var teamNames = $('.TeamLinks a.AnchorLink h2');
+
+            console.log('teams ...' + teamNames.length);
 
             for (var i = 0; i < rosterLinks.length; i++) {
                 var urlElement = rosterLinks[i];
@@ -88,6 +103,7 @@ app.get('/scrape', function (req, res) {
 
             if (getScheduleFlag) {
                 var scheduleLinks = $(choiceTools['schedule_links_selector']);
+                console.log("Schedules ... " + scheduleLinks.length);
 
                 for (var i = 0; i < scheduleLinks.length; i++) {
                     var scheduleLinkElement = scheduleLinks[i];
@@ -96,7 +112,10 @@ app.get('/scrape', function (req, res) {
                     getSchedule(scheduleLinkElement, team_name, i, scheduleLinks.length);
                 }
             }
+            console.log('Finished ...');
 
+        } else {
+            console.log('error ...');
         }
 
         // fs.writeFile(choice + '.json', JSON.stringify(all_rosters, null, 4), function (err) {
@@ -193,6 +212,7 @@ app.get('/scrape', function (req, res) {
         // var roster = {};
         var preseason = [];
         var regularseason = [];
+        console.log(teamName);
 
         request(ESPN_ROOT + linkElement.attribs.href, function (error, response, html) {
             if (!error) {
@@ -200,7 +220,7 @@ app.get('/scrape', function (req, res) {
                 var $ = cheerio.load(html);
 
                 var schedule_categories = [];
-                $('tr.colhead').filter(function () {
+                $('tr.Table__TR').filter(function () {
                     var data = $(this);
                     var schedule_columns = data.find('td');
 
@@ -215,7 +235,7 @@ app.get('/scrape', function (req, res) {
                     }
                 });
                     
-                $('tr.oddrow, tr.evenrow').filter(function () {
+                $('tr.Table__even, tr.Table__odd').filter(function () {
                     var data = $(this);
 
                     for (var index = 0; index < data.length; index++) {
